@@ -20,7 +20,7 @@ Les entités clés identifiées sont:
 
 ## 3) Schéma base de données
 
-![Schéma base de données](images/schéma_bdd_b3_eval.png)
+![Schéma base de données](bdd/schéma_bdd_b3_eval.png)
 
 Correspondance détaillée des clés étrangères :
 - WORKSPACES.owner_account_id -> ACCOUNTS.id
