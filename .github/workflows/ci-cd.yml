@@ -146,3 +146,26 @@ jobs:
         run: |
           docker compose up -d --build
           docker compose ps
+
+      - name: Tests d'acceptance
+        run: |
+          set -euo pipefail
+
+          for i in {1..30}; do
+            frontend_status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4200/ || true)
+            backend_status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/workspaces || true)
+
+            echo "Tentative ${i}/30 - frontend=${frontend_status} backend=${backend_status}"
+
+            if [ "${frontend_status}" = "200" ] && [ "${backend_status}" != "000" ]; then
+              echo "Acceptance OK: frontend et backend sont accessibles."
+              exit 0
+            fi
+
+            sleep 5
+          done
+
+          echo "Acceptance KO: au moins un service est inaccessible."
+          docker compose ps
+          docker compose logs --no-color --tail=200
+          exit 1
