@@ -132,6 +132,17 @@ jobs:
             ${{ secrets.DOCKERHUB_FRONTEND_IMAGE }}:${{ github.sha }}
 
       - name: Démarrer la stack avec Docker Compose
+        env:
+          POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+          POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          SPRING_PROFILES_ACTIVE: prod
+          APP_MAIL_ENABLED: ${{ vars.APP_MAIL_ENABLED }}
+          APP_MAIL_FROM: ${{ vars.APP_MAIL_FROM }}
+          SMTP_HOST: ${{ vars.SMTP_HOST }}
+          SMTP_PORT: ${{ vars.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: |
           docker compose up -d --build
           docker compose ps
