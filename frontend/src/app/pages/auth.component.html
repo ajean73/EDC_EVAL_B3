@@ -1,0 +1,108 @@
+<main class="min-h-screen bg-gradient-to-b from-slate-100 to-slate-200 p-6" (click)="dismissMessageOnOutsideClick($event)">
+  <div class="mx-auto flex max-w-5xl items-center justify-center py-10">
+    <section class="grid w-full overflow-hidden rounded-3xl bg-white shadow-2xl lg:grid-cols-2">
+      <aside class="bg-slate-900 p-8 text-white">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">PMT</p>
+        <h1 class="mt-4 text-3xl font-bold leading-tight">Bienvenue sur ton board projet</h1>
+        <p class="mt-3 text-sm text-slate-300">
+          Connecte-toi pour accéder aux projets, suivre les tâches et organiser le flux de l'équipe.
+        </p>
+      </aside>
+
+      <article class="p-8">
+        <div class="mb-6 grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-sm font-semibold">
+          <button
+            type="button"
+            (click)="switchMode('login')"
+            class="rounded-lg px-3 py-2"
+            [ngClass]="mode === 'login' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
+          >
+            Connexion
+          </button>
+          <button
+            type="button"
+            (click)="switchMode('register')"
+            class="rounded-lg px-3 py-2"
+            [ngClass]="mode === 'register' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
+          >
+            Nouveau compte
+          </button>
+        </div>
+
+        <p *ngIf="errorMessage" data-message-alert class="mb-4 rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">{{ errorMessage }}</p>
+        <p *ngIf="successMessage" data-message-alert class="mb-4 rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-700">{{ successMessage }}</p>
+
+        <form *ngIf="mode === 'login'" class="space-y-3" (ngSubmit)="login()">
+          <div>
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Email</label>
+            <input
+              [(ngModel)]="loginForm.email"
+              name="loginEmail"
+              type="email"
+              class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+              required
+            >
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Mot de passe</label>
+            <input
+              [(ngModel)]="loginForm.password"
+              name="loginPassword"
+              type="password"
+              class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+              required
+            >
+          </div>
+          <button
+            type="submit"
+            class="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+            [disabled]="loading"
+          >
+            {{ loading ? 'Connexion...' : 'Se connecter' }}
+          </button>
+        </form>
+
+        <form *ngIf="mode === 'register'" class="space-y-3" (ngSubmit)="register()">
+          <div>
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Username</label>
+            <input
+              [(ngModel)]="registerForm.username"
+              name="registerUsername"
+              class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+              required
+              minlength="3"
+            >
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Email</label>
+            <input
+              [(ngModel)]="registerForm.email"
+              name="registerEmail"
+              type="email"
+              class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+              required
+            >
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Mot de passe</label>
+            <input
+              [(ngModel)]="registerForm.password"
+              name="registerPassword"
+              type="password"
+              class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+              required
+              minlength="8"
+            >
+          </div>
+          <button
+            type="submit"
+            class="w-full rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
+            [disabled]="loading"
+          >
+            {{ loading ? 'Création...' : 'Créer mon compte' }}
+          </button>
+        </form>
+      </article>
+    </section>
+  </div>
+</main>
