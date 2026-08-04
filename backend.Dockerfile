@@ -6,6 +6,7 @@ COPY mvnw ./
 RUN chmod +x mvnw
 RUN ./mvnw -q -DskipTests dependency:go-offline
 COPY src ./src
+# Tests are executed in CI (mvn verify); image build only packages the app.
 RUN ./mvnw -q -DskipTests package
 
 FROM eclipse-temurin:21-jre
