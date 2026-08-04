@@ -1,0 +1,26 @@
+package fr.edc3.pmt.domain.service;
+
+import fr.edc3.pmt.domain.enums.MemberRole;
+import fr.edc3.pmt.domain.repository.TeamMemberRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class PermissionService {
+
+    private final TeamMemberRepository teamMemberRepository;
+
+    public void requireRole(Long workspaceId, Long accountId, MemberRole... allowedRoles) {
+        var member = teamMemberRepository.findByWorkspaceIdAndAccountId(workspaceId, accountId)
+                .orElseThrow(() -> new ApiException("Account is not a member of workspace"));
+
+        for (MemberRole role : allowedRoles) {
+            if (member.getRole() == role) {
+                return;
+            }
+        }
+
+        throw new ApiException("Permission denied");
+    }
+}

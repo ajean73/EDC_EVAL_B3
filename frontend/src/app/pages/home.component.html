@@ -1,0 +1,362 @@
+<main class="min-h-screen bg-gradient-to-br from-orange-50 via-stone-50 to-green-50" (click)="dismissMessageOnOutsideClick($event)">
+  <div class="flex min-h-screen">
+    <aside class="hidden w-64 flex-col border-r border-stone-200 bg-white/95 lg:flex">
+      <div class="border-b border-stone-200 px-5 py-4">
+        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-orange-700">PMT Projets</p>
+        <p class="mt-1 text-lg font-bold text-slate-900">Tableau de bord</p>
+      </div>
+      <nav class="flex-1 space-y-6 px-3 py-4 text-sm">
+        <div>
+          <button
+            type="button"
+            (click)="showBoardSection()"
+            class="mb-2 block w-full rounded-lg px-3 py-2 text-left font-semibold"
+            [ngClass]="activeLeftSection === 'board' ? 'bg-orange-700 text-white' : 'text-slate-700 hover:bg-green-50'"
+          >
+            Tableau de bord
+          </button>
+          <button
+            type="button"
+            (click)="showSettingsSection()"
+            class="mb-1 block w-full rounded-lg px-3 py-2 text-left font-semibold"
+            [ngClass]="activeLeftSection === 'settings' ? 'bg-orange-700 text-white' : 'text-slate-700 hover:bg-green-50'"
+          >
+            Paramètres
+          </button>
+        </div>
+      </nav>
+      <div class="border-t border-stone-200 px-5 py-4">
+        <p class="text-xs text-slate-500">Connecté en tant que</p>
+        <p class="text-sm font-semibold text-slate-800">{{ currentUsername }}</p>
+      </div>
+    </aside>
+
+    <div class="flex-1 p-4 lg:p-6">
+      <div class="mx-auto max-w-[1360px] space-y-6">
+    <header class="rounded-2xl border border-stone-200 bg-white px-6 py-5 text-slate-900 shadow-sm">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight">Project Management Tool</h1>
+          <p class="mt-1 text-sm text-slate-500">Pilotage des projets, des tâches et des notifications.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800">{{ currentUsername }}</span>
+          <button
+            type="button"
+            (click)="logout()"
+            class="rounded-lg border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+          >
+            Déconnexion
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <p *ngIf="errorMessage" data-message-alert class="rounded-lg bg-red-100 px-4 py-2 text-sm text-red-700">{{ errorMessage }}</p>
+
+    <section *ngIf="activeLeftSection === 'settings'" class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+      <h2 class="text-xl font-bold text-slate-900">Paramètres</h2>
+      <p class="mt-1 text-sm text-slate-500">Informations de ton compte utilisateur.</p>
+      <div class="mt-5 grid gap-4 md:grid-cols-2">
+        <article class="rounded-xl border border-green-200 bg-green-50/50 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Nom d'utilisateur</p>
+          <p class="mt-1 text-base font-semibold text-slate-800">{{ currentUsername }}</p>
+        </article>
+        <article class="rounded-xl border border-green-200 bg-green-50/50 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">ID du compte</p>
+          <p class="mt-1 text-base font-semibold text-slate-800">{{ actorAccountId }}</p>
+        </article>
+      </div>
+    </section>
+
+    <section *ngIf="activeLeftSection === 'board'" class="grid gap-6 lg:grid-cols-3">
+      <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-1">
+        <h2 class="mb-4 text-lg font-semibold text-slate-800">Nouveau projet</h2>
+        <form class="space-y-3" (ngSubmit)="createWorkspace()">
+          <input [(ngModel)]="createWorkspaceForm.name" name="wsName" placeholder="Nom" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
+          <textarea [(ngModel)]="createWorkspaceForm.description" name="wsDesc" placeholder="Description" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></textarea>
+          <input [(ngModel)]="createWorkspaceForm.startDate" name="wsStart" type="date" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
+          <button type="submit" class="w-full rounded-lg bg-orange-700 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600">Créer</button>
+        </form>
+      </article>
+
+      <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
+        <h2 class="mb-4 text-lg font-semibold text-slate-800">Projets</h2>
+        <p class="mb-3 text-xs text-slate-600" *ngIf="selectedWorkspaceId">
+          Ton rôle dans le projet sélectionné :
+          <span class="font-semibold text-slate-800">{{ currentWorkspaceRole || 'AUCUN' }}</span>
+        </p>
+        <div class="grid gap-3 md:grid-cols-2">
+          <button
+            *ngFor="let workspace of workspaces"
+            (click)="selectWorkspace(workspace.id)"
+            class="rounded-xl border px-4 py-3 text-left transition"
+            [ngClass]="selectedWorkspaceId === workspace.id ? 'border-orange-700 bg-orange-700 text-white' : 'border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100'"
+          >
+            <p class="text-sm font-semibold">{{ workspace.name }}</p>
+            <p class="mt-1 text-xs opacity-80">{{ workspace.description }}</p>
+          </button>
+        </div>
+      </article>
+    </section>
+
+    <section *ngIf="activeLeftSection === 'board' && selectedWorkspaceId" class="grid gap-6 lg:grid-cols-3">
+      <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
+        <div class="mb-4 flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-slate-800">Tâches</h2>
+          <span *ngIf="loading" class="text-xs text-slate-500">Chargement...</span>
+        </div>
+
+        <form class="mb-5 grid gap-3 md:grid-cols-2" (ngSubmit)="createWorkItem()">
+          <input [(ngModel)]="createWorkItemForm.title" name="wiTitle" placeholder="Titre" class="rounded-lg border border-slate-300 px-3 py-2 text-sm md:col-span-2" required>
+          <textarea [(ngModel)]="createWorkItemForm.description" name="wiDesc" placeholder="Description" class="rounded-lg border border-slate-300 px-3 py-2 text-sm md:col-span-2"></textarea>
+          <input [(ngModel)]="createWorkItemForm.dueDate" name="wiDue" type="date" class="rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
+          <select [(ngModel)]="createWorkItemForm.priority" name="wiPriority" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            <option value="LOW">LOW</option>
+            <option value="MEDIUM">MEDIUM</option>
+            <option value="HIGH">HIGH</option>
+          </select>
+          <select [(ngModel)]="createWorkItemForm.assignedAccountId" name="wiAssigned" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            <option [ngValue]="null">Non assigné</option>
+            <option *ngFor="let member of members" [ngValue]="member.accountId">
+              {{ member.username }} ({{ member.role }})
+            </option>
+          </select>
+          <button type="submit" class="rounded-lg bg-orange-700 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 md:col-span-2">Ajouter une tâche</button>
+        </form>
+
+        <div class="grid gap-4 xl:grid-cols-4">
+          <article *ngFor="let status of statuses" class="rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+            <header class="mb-3 flex items-center justify-between">
+              <h3 class="text-xs font-bold tracking-wide text-slate-700">{{ getStatusLabel(status) }}</h3>
+              <span class="rounded-full bg-green-700 px-2 py-1 text-[10px] font-semibold text-white">{{ getItemsByStatus(status).length }}</span>
+            </header>
+
+            <div
+              cdkDropList
+              [id]="getDropListId(status)"
+              [cdkDropListData]="status"
+              [cdkDropListConnectedTo]="[
+                getDropListId('TODO'),
+                getDropListId('IN_PROGRESS'),
+                getDropListId('IN_REVIEW'),
+                getDropListId('DONE')
+              ]"
+              (cdkDropListDropped)="dropWorkItem($event)"
+              class="space-y-2 rounded-lg p-1 min-h-24"
+            >
+              <article
+                *ngFor="let item of getItemsByStatus(status)"
+                cdkDrag
+                [cdkDragData]="item"
+                class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm cursor-grab active:cursor-grabbing"
+              >
+                <p class="text-sm font-semibold text-slate-900 break-words">{{ item.title }}</p>
+                <p class="mt-1 text-xs text-slate-600">{{ item.description || 'Sans description' }}</p>
+                <div class="mt-2 flex items-center justify-between text-[11px] text-slate-500">
+                  <span class="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-700">{{ item.priority }}</span>
+                  <span>{{ item.dueDate | date:'yyyy-MM-dd' }}</span>
+                </div>
+                <p class="mt-1 text-[11px] text-slate-600">
+                  Assigné à : {{ getAssigneeDisplay(item.assignedAccountId) }}
+                </p>
+                <div class="mt-2 flex flex-wrap items-center gap-1">
+                  <button
+                    type="button"
+                    (click)="openWorkItemDetails(item)"
+                    class="inline-flex shrink-0 items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-100"
+                  >
+                    <span aria-hidden="true">&#9998;</span>
+                    <span>Modifier</span>
+                  </button>
+                  <button
+                    type="button"
+                    (click)="openWorkItemHistory(item)"
+                    class="inline-flex shrink-0 items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-100"
+                  >
+                    <span aria-hidden="true">&#128340;</span>
+                    <span>Historique</span>
+                  </button>
+                </div>
+              </article>
+
+              <p *ngIf="getItemsByStatus(status).length === 0" class="rounded-lg border border-dashed border-slate-300 bg-white px-3 py-4 text-center text-xs text-slate-500">
+                Aucune tâche.
+              </p>
+            </div>
+          </article>
+        </div>
+      </article>
+
+      <aside class="space-y-6">
+        <article class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+          <div class="mb-3 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-slate-800">Mes invitations</h2>
+            <button (click)="refreshMyInvitations()" class="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-100">
+              Rafraîchir
+            </button>
+          </div>
+          <ul class="space-y-2">
+            <li *ngFor="let invitation of myInvitations" class="rounded-lg border border-slate-200 px-3 py-2 text-xs">
+              <p class="font-semibold text-slate-800">Projet #{{ invitation.workspaceId }} - rôle {{ invitation.role }}</p>
+              <p class="text-slate-600">Invité par {{ invitation.invitedByUsername || ('Compte #' + invitation.invitedBy) }}</p>
+              <div class="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  (click)="acceptInvitation(invitation.id)"
+                  class="rounded-md bg-orange-700 px-2 py-1 font-semibold text-white hover:bg-orange-600"
+                >
+                  Accepter
+                </button>
+                <button
+                  type="button"
+                  (click)="declineInvitation(invitation.id)"
+                  class="rounded-md bg-slate-200 px-2 py-1 font-semibold text-slate-700 hover:bg-slate-300"
+                >
+                  Refuser
+                </button>
+              </div>
+            </li>
+            <li *ngIf="myInvitations.length === 0" class="text-xs text-slate-500">Aucune invitation en attente.</li>
+          </ul>
+        </article>
+
+        <article class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+          <h2 class="mb-3 text-lg font-semibold text-slate-800">Membres du projet</h2>
+          <ul class="space-y-2">
+            <li *ngFor="let member of members" class="rounded-lg border border-slate-200 px-3 py-2 text-xs">
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-slate-700">{{ member.username }}</span>
+                <select
+                  class="rounded-md border border-slate-300 px-2 py-1 text-xs"
+                  [ngModel]="member.role"
+                  (ngModelChange)="updateRole(member, $event)"
+                  [disabled]="currentWorkspaceRole !== 'ADMIN'"
+                >
+                  <option value="ADMIN">ADMIN</option>
+                  <option value="MEMBER">MEMBER</option>
+                  <option value="OBSERVER">OBSERVER</option>
+                </select>
+              </div>
+            </li>
+          </ul>
+        </article>
+
+        <article class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+          <h2 class="mb-3 text-lg font-semibold text-slate-800">Inviter un membre</h2>
+          <form class="space-y-2" (ngSubmit)="inviteMember()">
+            <input
+              [(ngModel)]="inviteForm.inviteeEmail"
+              name="inviteEmail"
+              type="email"
+              placeholder="email@exemple.com"
+              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs"
+              required
+            >
+            <select [(ngModel)]="inviteForm.role" name="inviteRole" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs">
+              <option value="ADMIN">ADMIN</option>
+              <option value="MEMBER">MEMBER</option>
+              <option value="OBSERVER">OBSERVER</option>
+            </select>
+            <button type="submit" class="w-full rounded-lg bg-orange-700 px-3 py-2 text-xs font-semibold text-white hover:bg-orange-600">
+              Envoyer invitation
+            </button>
+          </form>
+          <p *ngIf="currentWorkspaceRole !== 'ADMIN'" class="mt-2 text-xs text-orange-700">
+            Invitation réservée aux administrateurs du projet.
+          </p>
+          <p *ngIf="latestInvitation" class="mt-3 text-xs text-green-700">
+            Invitation envoyée à {{ latestInvitation.inviteeEmail }} ({{ latestInvitation.role }})
+          </p>
+        </article>
+
+        <article class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+          <h2 class="mb-3 text-lg font-semibold text-slate-800">Notifications</h2>
+          <button (click)="refreshNotifications()" class="mb-3 rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100">
+            Rafraîchir
+          </button>
+          <ul class="space-y-2">
+            <li *ngFor="let notification of notifications" class="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-700">
+              {{ notification.kind }} - item #{{ notification.workItemId }}
+            </li>
+          </ul>
+        </article>
+      </aside>
+    </section>
+
+    <section *ngIf="activeLeftSection === 'board' && selectedWorkItem" class="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/55 p-4">
+      <article class="relative max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl">
+        <button
+          type="button"
+          (click)="closeWorkItemDetails()"
+          aria-label="Fermer"
+          class="absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-slate-600 hover:bg-slate-100"
+        >
+          &#10005;
+        </button>
+        <div class="mb-4">
+          <h2 class="text-lg font-semibold text-slate-800">Modifier la tâche #{{ selectedWorkItem.id }}</h2>
+        </div>
+
+        <form class="space-y-3" (ngSubmit)="saveSelectedWorkItem()">
+          <input [(ngModel)]="editWorkItemForm.title" name="editTitle" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
+          <textarea [(ngModel)]="editWorkItemForm.description" name="editDescription" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></textarea>
+          <div class="grid gap-3 md:grid-cols-2">
+            <input [(ngModel)]="editWorkItemForm.dueDate" name="editDueDate" type="date" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            <select [(ngModel)]="editWorkItemForm.priority" name="editPriority" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+              <option value="LOW">LOW</option>
+              <option value="MEDIUM">MEDIUM</option>
+              <option value="HIGH">HIGH</option>
+            </select>
+            <select [(ngModel)]="editWorkItemForm.status" name="editStatus" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+              <option value="TODO">TODO</option>
+              <option value="IN_PROGRESS">IN_PROGRESS</option>
+              <option value="IN_REVIEW">IN_REVIEW</option>
+              <option value="DONE">DONE</option>
+            </select>
+            <select [(ngModel)]="editWorkItemForm.assignedAccountId" name="editAssigned" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+              <option [ngValue]="null">Non assigné</option>
+              <option *ngFor="let member of members" [ngValue]="member.accountId">
+                  {{ member.username }} ({{ member.role }})
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-semibold text-slate-600">Date de fin</label>
+            <input [(ngModel)]="editWorkItemForm.completedAt" name="editCompletedAt" type="datetime-local" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+          </div>
+          <button type="submit" class="w-full rounded-lg bg-orange-700 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600">Enregistrer les modifications</button>
+        </form>
+      </article>
+    </section>
+
+    <section *ngIf="activeLeftSection === 'board' && selectedHistoryWorkItem" class="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 p-4">
+      <article class="relative max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl">
+        <button
+          type="button"
+          (click)="closeWorkItemHistory()"
+          aria-label="Fermer"
+          class="absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-slate-600 hover:bg-slate-100"
+        >
+          &#10005;
+        </button>
+        <div class="mb-4">
+          <h2 class="text-lg font-semibold text-slate-800">Historique de la tâche #{{ selectedHistoryWorkItem.id }}</h2>
+        </div>
+
+        <p *ngIf="historyLoading" class="mb-3 rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-600">Chargement de l'historique...</p>
+
+        <ul class="space-y-2">
+          <li *ngFor="let h of selectedWorkItemHistory" class="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-700">
+            <p class="font-semibold">{{ h.action }} - {{ h.changedAt | date:'yyyy-MM-dd HH:mm' }}</p>
+            <p *ngIf="h.previousValues">Avant : {{ h.previousValues }}</p>
+            <p *ngIf="h.newValues">Après : {{ h.newValues }}</p>
+          </li>
+          <li *ngIf="!historyLoading && selectedWorkItemHistory.length === 0" class="text-xs text-slate-500">Aucun historique disponible.</li>
+        </ul>
+      </article>
+    </section>
+      </div>
+    </div>
+  </div>
+</main>
