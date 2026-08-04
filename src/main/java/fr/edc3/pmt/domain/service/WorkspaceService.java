@@ -42,6 +42,7 @@ public class WorkspaceService {
 
         Workspace saved = workspaceRepository.save(workspace);
 
+        // Le créateur devient automatiquement ADMIN du workspace.
         teamMemberRepository.save(TeamMember.builder()
                 .workspaceId(saved.getId())
                 .accountId(saved.getOwnerAccountId())
@@ -213,6 +214,7 @@ public class WorkspaceService {
             throw new ApiException("Invitation does not belong to this account");
         }
 
+                // Idempotence: si le membre existe deja, on ne duplique pas l'adhesion.
         if (!teamMemberRepository.existsByWorkspaceIdAndAccountId(invitation.getWorkspaceId(), actorAccountId)) {
             teamMemberRepository.save(TeamMember.builder()
                     .workspaceId(invitation.getWorkspaceId())

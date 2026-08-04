@@ -11,6 +11,7 @@ export interface LoginResponse {
   email: string;
 }
 
+// Domaine Workspace
 export interface Workspace {
   id: number;
   name: string;
@@ -43,6 +44,7 @@ export interface Invitation {
   respondedAt: string | null;
 }
 
+// Domaine Work Item
 export interface WorkItem {
   id: number;
   workspaceId: number;
@@ -68,11 +70,13 @@ export interface WorkItemHistoryEntry {
   changedAt: string;
 }
 
+// Vue dashboard
 export interface DashboardStatus {
   status: 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE';
   count: number;
 }
 
+// Notifications utilisateur
 export interface Notification {
   id: number;
   accountId: number;

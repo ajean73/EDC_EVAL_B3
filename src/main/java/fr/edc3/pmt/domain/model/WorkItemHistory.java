@@ -17,6 +17,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class WorkItemHistory {
+    // Trace d'audit des modifications de tâches (avant/après en JSONB).
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -45,6 +47,7 @@ public class WorkItemHistory {
 
     @PrePersist
     void prePersist() {
+        // Horodatage de l'événement si non fourni explicitement.
         if (this.changedAt == null) {
             this.changedAt = LocalDateTime.now();
         }

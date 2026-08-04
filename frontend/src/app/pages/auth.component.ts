@@ -12,6 +12,7 @@ import { AuthSessionService } from '../core/auth-session.service';
   templateUrl: './auth.component.html'
 })
 export class AuthComponent implements OnDestroy {
+  // L'ecran alterne entre connexion et inscription sans changer de route.
   mode: 'login' | 'register' = 'login';
   loading = false;
   errorMessage = '';
@@ -34,6 +35,7 @@ export class AuthComponent implements OnDestroy {
     private readonly authSession: AuthSessionService,
     private readonly router: Router
   ) {
+    // Si une session existe déjà, on évite de re-afficher le formulaire d'authentification.
     if (this.authSession.isAuthenticated()) {
       void this.router.navigate(['/app']);
     }
@@ -48,6 +50,7 @@ export class AuthComponent implements OnDestroy {
     this.loading = true;
     this.clearMessages();
 
+    // Le backend renvoie l'identité utilisateur, stockée ensuite par AuthSessionService.
     this.api.login(this.loginForm).subscribe({
       next: (user) => {
         this.authSession.setUser(user);
@@ -67,6 +70,7 @@ export class AuthComponent implements OnDestroy {
 
     this.api.register(this.registerForm).subscribe({
       next: () => {
+        // UX: pré-remplit l'email pour enchaîner naturellement vers la connexion.
         this.showSuccess('Compte créé. Connecte-toi maintenant.');
         this.loading = false;
         this.mode = 'login';
@@ -95,6 +99,7 @@ export class AuthComponent implements OnDestroy {
       return;
     }
 
+    // Clic en dehors du composant d'alerte: fermeture manuelle du message.
     this.clearMessages();
   }
 
@@ -118,6 +123,7 @@ export class AuthComponent implements OnDestroy {
 
   private startMessageTimer(): void {
     this.clearMessageTimer();
+    // Les alertes disparaissent automatiquement pour garder une interface propre.
     this.messageTimer = setTimeout(() => {
       this.errorMessage = '';
       this.successMessage = '';

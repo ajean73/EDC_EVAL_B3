@@ -52,6 +52,7 @@ public class WorkItemService {
 
         WorkItem saved = workItemRepository.save(item);
 
+        // Chaque modification majeure est historisée pour audit et traçabilité.
         workItemHistoryRepository.save(WorkItemHistory.builder()
                 .workItemId(saved.getId())
                 .changedBy(request.creatorAccountId())
@@ -117,6 +118,7 @@ public class WorkItemService {
             if (request.status() == WorkItemStatus.DONE && item.getCompletedAt() == null && request.completedAt() == null) {
                 item.setCompletedAt(java.time.LocalDateTime.now());
             }
+            // On nettoie completedAt si la tâche quitte l'état DONE sans date explicite.
             if (request.status() != WorkItemStatus.DONE && request.completedAt() == null) {
                 item.setCompletedAt(null);
             }
@@ -135,6 +137,7 @@ public class WorkItemService {
                 .newValues(toHistorySnapshot(saved))
                 .build());
 
+        // Notification uniquement si l'assignation a effectivement changé.
         if (!Objects.equals(previousAssignedAccountId, saved.getAssignedAccountId()) && saved.getAssignedAccountId() != null) {
             notificationService.createTaskAssignedNotification(saved.getAssignedAccountId(), saved.getId());
         }

@@ -10,5 +10,6 @@ export const authGuard: CanActivateFn = () => {
     return true;
   }
 
+  // Redirection declarative vers /auth si aucune session active.
   return router.createUrlTree(['/auth']);
 };

@@ -18,6 +18,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class TeamMember {
+    // Entité de jonction compte <-> workspace avec rôle associé.
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -38,6 +40,7 @@ public class TeamMember {
 
     @PrePersist
     void prePersist() {
+        // Date d'adhésion auto-renseignée si absente.
         if (this.joinedAt == null) {
             this.joinedAt = LocalDateTime.now();
         }

@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
+// Accès à l'historique des changements de tâches.
 public interface WorkItemHistoryRepository extends JpaRepository<WorkItemHistory, Long> {
     List<WorkItemHistory> findByWorkItemIdOrderByChangedAtDesc(Long workItemId);
 }

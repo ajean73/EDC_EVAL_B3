@@ -17,6 +17,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class ProjectInvitation {
+    // Invitation d'un utilisateur (par email) à rejoindre un workspace.
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -48,6 +50,7 @@ public class ProjectInvitation {
 
     @PrePersist
     void prePersist() {
+        // Une invitation est créée en état PENDING par défaut.
         if (this.state == null) {
             this.state = InvitationState.PENDING;
         }

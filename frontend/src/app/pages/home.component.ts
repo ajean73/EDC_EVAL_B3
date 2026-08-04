@@ -15,6 +15,7 @@ import { AuthSessionService } from '../core/auth-session.service';
   templateUrl: './home.component.html'
 })
 export class HomeComponent implements OnInit {
+  // Colonnes sources du board Kanban; doivent rester alignées avec les statuts backend.
   readonly statuses: Array<WorkItem['status']> = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'];
   activeLeftSection: 'board' | 'settings' = 'board';
 
@@ -80,6 +81,7 @@ export class HomeComponent implements OnInit {
       return;
     }
 
+    // L'identité locale pilote toutes les requêtes actorAccountId du frontend.
     this.actorAccountId = user.accountId;
     this.currentUsername = user.username;
     this.refreshWorkspaces();
@@ -151,6 +153,7 @@ export class HomeComponent implements OnInit {
     this.members = [];
     this.latestInvitation = null;
 
+    // Les membres sont chargés en parallèle pour calculer le rôle courant rapidement.
     this.refreshMembers();
 
     this.api.getWorkItems(workspaceId, this.actorAccountId!).subscribe({
@@ -311,6 +314,7 @@ export class HomeComponent implements OnInit {
         this.myInvitations = data;
       },
       error: () => {
+        // Ne bloque pas l'ecran principal en cas d'erreur sur ce panneau secondaire.
         this.myInvitations = [];
       }
     });
@@ -426,6 +430,7 @@ export class HomeComponent implements OnInit {
     const oldStatus = item.status;
     const oldCompletedAt = item.completedAt;
 
+    // Mise a jour optimiste pour fluidifier le drag-and-drop; rollback en cas d'echec API.
     item.status = targetStatus;
     item.completedAt = targetStatus === 'DONE' ? new Date().toISOString() : null;
 
@@ -483,6 +488,7 @@ export class HomeComponent implements OnInit {
 
     this.selectedHistoryWorkItem = item;
     this.selectedWorkItemHistory = [];
+    // Spinner dédié au panneau historique pour éviter un freeze global de l'écran.
     this.historyLoading = true;
 
     this.api.getWorkItemHistory(this.selectedWorkspaceId, item.id, this.actorAccountId).subscribe({
@@ -529,6 +535,7 @@ export class HomeComponent implements OnInit {
         this.workItems = this.workItems.map(item => item.id === updated.id ? updated : item);
         this.editWorkItemForm.completedAt = this.toDateTimeLocal(updated.completedAt);
 
+        // Rechargement immediat de l'historique pour refléter la mutation qui vient d'etre faite.
         this.api.getWorkItemHistory(this.selectedWorkspaceId!, updated.id, this.actorAccountId!).subscribe({
           next: (history) => {
             this.selectedWorkItemHistory = history;

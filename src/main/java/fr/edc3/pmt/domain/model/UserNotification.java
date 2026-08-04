@@ -16,6 +16,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class UserNotification {
+    // Notification persistante associée à un compte et éventuellement une tâche.
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -42,6 +44,7 @@ public class UserNotification {
 
     @PrePersist
     void prePersist() {
+        // Par défaut, une notification est considérée non envoyée.
         if (this.isSent == null) {
             this.isSent = false;
         }
