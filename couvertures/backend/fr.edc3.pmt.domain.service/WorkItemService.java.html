@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WorkItemService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">fr.edc3.pmt.domain.service</a> &gt; <span class="el_source">WorkItemService.java</span></div><h1>WorkItemService.java</h1><pre class="source lang-java linenums">package fr.edc3.pmt.domain.service;
+
+import fr.edc3.pmt.api.dto.WorkItemDtos;
+import fr.edc3.pmt.domain.enums.HistoryAction;
+import fr.edc3.pmt.domain.enums.MemberRole;
+import fr.edc3.pmt.domain.enums.WorkItemStatus;
+import fr.edc3.pmt.domain.model.WorkItem;
+import fr.edc3.pmt.domain.model.WorkItemHistory;
+import fr.edc3.pmt.domain.repository.TeamMemberRepository;
+import fr.edc3.pmt.domain.repository.WorkItemHistoryRepository;
+import fr.edc3.pmt.domain.repository.WorkItemRepository;
+import fr.edc3.pmt.domain.repository.WorkspaceRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Objects;
+
+@Service
+@RequiredArgsConstructor
+public class WorkItemService {
+
+    private final WorkItemRepository workItemRepository;
+    private final WorkItemHistoryRepository workItemHistoryRepository;
+    private final WorkspaceRepository workspaceRepository;
+    private final TeamMemberRepository teamMemberRepository;
+    private final PermissionService permissionService;
+    private final NotificationService notificationService;
+
+    @Transactional
+    public WorkItemDtos.WorkItemResponse create(Long workspaceId, WorkItemDtos.CreateWorkItemRequest request) {
+<span class="fc" id="L33">        workspaceRepository.findById(workspaceId)</span>
+<span class="pc" id="L34">                .orElseThrow(() -&gt; new NotFoundException(&quot;Workspace not found&quot;));</span>
+
+<span class="fc" id="L36">        permissionService.requireRole(workspaceId, request.creatorAccountId(), MemberRole.ADMIN, MemberRole.MEMBER);</span>
+
+<span class="pc bpc" id="L38" title="1 of 2 branches missed.">        if (request.assignedAccountId() != null &amp;&amp;</span>
+<span class="fc bfc" id="L39" title="All 2 branches covered.">            !teamMemberRepository.existsByWorkspaceIdAndAccountId(workspaceId, request.assignedAccountId())) {</span>
+<span class="fc" id="L40">            throw new ApiException(&quot;Assigned account is not member of workspace&quot;);</span>
+        }
+
+<span class="fc" id="L43">        WorkItem item = WorkItem.builder()</span>
+<span class="fc" id="L44">                .workspaceId(workspaceId)</span>
+<span class="fc" id="L45">                .title(request.title())</span>
+<span class="fc" id="L46">                .description(request.description())</span>
+<span class="fc" id="L47">                .dueDate(request.dueDate())</span>
+<span class="fc" id="L48">                .priority(request.priority())</span>
+<span class="fc" id="L49">                .creatorAccountId(request.creatorAccountId())</span>
+<span class="fc" id="L50">                .assignedAccountId(request.assignedAccountId())</span>
+<span class="fc" id="L51">                .build();</span>
+
+<span class="fc" id="L53">        WorkItem saved = workItemRepository.save(item);</span>
+
+<span class="fc" id="L55">        workItemHistoryRepository.save(WorkItemHistory.builder()</span>
+<span class="fc" id="L56">                .workItemId(saved.getId())</span>
+<span class="fc" id="L57">                .changedBy(request.creatorAccountId())</span>
+<span class="fc" id="L58">                .action(HistoryAction.CREATED)</span>
+<span class="fc" id="L59">                .newValues(&quot;{\&quot;status\&quot;:\&quot;&quot; + saved.getStatus() + &quot;\&quot;,\&quot;assigned_account_id\&quot;:&quot; + saved.getAssignedAccountId() + &quot;}&quot;)</span>
+<span class="fc" id="L60">                .build());</span>
+
+<span class="pc bpc" id="L62" title="1 of 2 branches missed.">        if (saved.getAssignedAccountId() != null) {</span>
+<span class="fc" id="L63">            notificationService.createTaskAssignedNotification(saved.getAssignedAccountId(), saved.getId());</span>
+        }
+
+<span class="fc" id="L66">        return toResponse(saved);</span>
+    }
+
+    @Transactional(readOnly = true)
+    public List&lt;WorkItemDtos.WorkItemResponse&gt; findByWorkspace(Long workspaceId, Long actorAccountId) {
+<span class="fc" id="L71">        permissionService.requireRole(workspaceId, actorAccountId, MemberRole.ADMIN, MemberRole.MEMBER, MemberRole.OBSERVER);</span>
+<span class="fc" id="L72">        return workItemRepository.findByWorkspaceId(workspaceId).stream().map(this::toResponse).toList();</span>
+    }
+
+    @Transactional(readOnly = true)
+    public WorkItemDtos.WorkItemResponse findOne(Long workspaceId, Long workItemId, Long actorAccountId) {
+<span class="fc" id="L77">        permissionService.requireRole(workspaceId, actorAccountId, MemberRole.ADMIN, MemberRole.MEMBER, MemberRole.OBSERVER);</span>
+<span class="fc" id="L78">        WorkItem item = workItemRepository.findByIdAndWorkspaceId(workItemId, workspaceId)</span>
+<span class="pc" id="L79">                .orElseThrow(() -&gt; new NotFoundException(&quot;Work item not found&quot;));</span>
+<span class="nc" id="L80">        return toResponse(item);</span>
+    }
+
+    @Transactional
+    public WorkItemDtos.WorkItemResponse update(Long workspaceId, Long workItemId, WorkItemDtos.UpdateWorkItemRequest request) {
+<span class="fc" id="L85">        permissionService.requireRole(workspaceId, request.actorAccountId(), MemberRole.ADMIN, MemberRole.MEMBER);</span>
+
+<span class="fc" id="L87">        WorkItem item = workItemRepository.findByIdAndWorkspaceId(workItemId, workspaceId)</span>
+<span class="pc" id="L88">                .orElseThrow(() -&gt; new NotFoundException(&quot;Work item not found&quot;));</span>
+<span class="fc" id="L89">        Long previousAssignedAccountId = item.getAssignedAccountId();</span>
+
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        if (request.assignedAccountId() != null &amp;&amp;</span>
+<span class="pc bpc" id="L92" title="1 of 2 branches missed.">                !teamMemberRepository.existsByWorkspaceIdAndAccountId(workspaceId, request.assignedAccountId())) {</span>
+<span class="fc" id="L93">            throw new ApiException(&quot;Assigned account is not member of workspace&quot;);</span>
+        }
+
+<span class="fc" id="L96">        String previousValues = toHistorySnapshot(item);</span>
+
+<span class="fc bfc" id="L98" title="All 2 branches covered.">        if (request.title() != null) {</span>
+<span class="fc" id="L99">            item.setTitle(request.title());</span>
+        }
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        if (request.description() != null) {</span>
+<span class="fc" id="L102">            item.setDescription(request.description());</span>
+        }
+<span class="fc bfc" id="L104" title="All 2 branches covered.">        if (request.dueDate() != null) {</span>
+<span class="fc" id="L105">            item.setDueDate(request.dueDate());</span>
+        }
+<span class="fc bfc" id="L107" title="All 2 branches covered.">        if (request.priority() != null) {</span>
+<span class="fc" id="L108">            item.setPriority(request.priority());</span>
+        }
+<span class="fc bfc" id="L110" title="All 2 branches covered.">        if (Boolean.TRUE.equals(request.clearAssignee())) {</span>
+<span class="fc" id="L111">            item.setAssignedAccountId(null);</span>
+<span class="pc bpc" id="L112" title="1 of 2 branches missed.">        } else if (request.assignedAccountId() != null) {</span>
+<span class="nc" id="L113">            item.setAssignedAccountId(request.assignedAccountId());</span>
+        }
+<span class="pc bpc" id="L115" title="1 of 2 branches missed.">        if (request.status() != null) {</span>
+<span class="fc" id="L116">            item.setStatus(request.status());</span>
+<span class="pc bpc" id="L117" title="2 of 6 branches missed.">            if (request.status() == WorkItemStatus.DONE &amp;&amp; item.getCompletedAt() == null &amp;&amp; request.completedAt() == null) {</span>
+<span class="fc" id="L118">                item.setCompletedAt(java.time.LocalDateTime.now());</span>
+            }
+<span class="pc bpc" id="L120" title="1 of 4 branches missed.">            if (request.status() != WorkItemStatus.DONE &amp;&amp; request.completedAt() == null) {</span>
+<span class="fc" id="L121">                item.setCompletedAt(null);</span>
+            }
+        }
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">        if (request.completedAt() != null) {</span>
+<span class="nc" id="L125">            item.setCompletedAt(request.completedAt());</span>
+        }
+
+<span class="fc" id="L128">        WorkItem saved = workItemRepository.save(item);</span>
+
+<span class="fc" id="L130">        workItemHistoryRepository.save(WorkItemHistory.builder()</span>
+<span class="fc" id="L131">                .workItemId(saved.getId())</span>
+<span class="fc" id="L132">                .changedBy(request.actorAccountId())</span>
+<span class="fc" id="L133">                .action(HistoryAction.UPDATED)</span>
+<span class="fc" id="L134">                .previousValues(previousValues)</span>
+<span class="fc" id="L135">                .newValues(toHistorySnapshot(saved))</span>
+<span class="fc" id="L136">                .build());</span>
+
+<span class="pc bpc" id="L138" title="1 of 4 branches missed.">        if (!Objects.equals(previousAssignedAccountId, saved.getAssignedAccountId()) &amp;&amp; saved.getAssignedAccountId() != null) {</span>
+<span class="nc" id="L139">            notificationService.createTaskAssignedNotification(saved.getAssignedAccountId(), saved.getId());</span>
+        }
+
+<span class="fc" id="L142">        return toResponse(saved);</span>
+    }
+
+    @Transactional
+    public WorkItemDtos.WorkItemResponse assign(Long workspaceId, Long workItemId, WorkItemDtos.AssignWorkItemRequest request) {
+<span class="fc" id="L147">        permissionService.requireRole(workspaceId, request.actorAccountId(), MemberRole.ADMIN, MemberRole.MEMBER);</span>
+
+<span class="fc bfc" id="L149" title="All 2 branches covered.">        if (!teamMemberRepository.existsByWorkspaceIdAndAccountId(workspaceId, request.assignedAccountId())) {</span>
+<span class="fc" id="L150">            throw new ApiException(&quot;Assigned account is not member of workspace&quot;);</span>
+        }
+
+<span class="fc" id="L153">        WorkItem item = workItemRepository.findByIdAndWorkspaceId(workItemId, workspaceId)</span>
+<span class="pc" id="L154">                .orElseThrow(() -&gt; new NotFoundException(&quot;Work item not found&quot;));</span>
+
+<span class="fc" id="L156">        String previousValues = toHistorySnapshot(item);</span>
+
+<span class="fc" id="L158">        item.setAssignedAccountId(request.assignedAccountId());</span>
+<span class="fc" id="L159">        WorkItem saved = workItemRepository.save(item);</span>
+
+<span class="fc" id="L161">        workItemHistoryRepository.save(WorkItemHistory.builder()</span>
+<span class="fc" id="L162">                .workItemId(saved.getId())</span>
+<span class="fc" id="L163">                .changedBy(request.actorAccountId())</span>
+<span class="fc" id="L164">                .action(HistoryAction.ASSIGNED)</span>
+<span class="fc" id="L165">                .previousValues(previousValues)</span>
+<span class="fc" id="L166">                .newValues(toHistorySnapshot(saved))</span>
+<span class="fc" id="L167">                .build());</span>
+
+<span class="fc" id="L169">        notificationService.createTaskAssignedNotification(saved.getAssignedAccountId(), saved.getId());</span>
+
+<span class="fc" id="L171">        return toResponse(saved);</span>
+    }
+
+    @Transactional(readOnly = true)
+    public List&lt;WorkItemDtos.WorkItemHistoryResponse&gt; findHistory(Long workspaceId, Long workItemId, Long actorAccountId) {
+<span class="nc" id="L176">        permissionService.requireRole(workspaceId, actorAccountId, MemberRole.ADMIN, MemberRole.MEMBER, MemberRole.OBSERVER);</span>
+
+<span class="nc" id="L178">        workItemRepository.findByIdAndWorkspaceId(workItemId, workspaceId)</span>
+<span class="nc" id="L179">                .orElseThrow(() -&gt; new NotFoundException(&quot;Work item not found&quot;));</span>
+
+<span class="nc" id="L181">        return workItemHistoryRepository.findByWorkItemIdOrderByChangedAtDesc(workItemId)</span>
+<span class="nc" id="L182">                .stream()</span>
+<span class="nc" id="L183">                .map(h -&gt; new WorkItemDtos.WorkItemHistoryResponse(</span>
+<span class="nc" id="L184">                        h.getId(),</span>
+<span class="nc" id="L185">                        h.getWorkItemId(),</span>
+<span class="nc" id="L186">                        h.getChangedBy(),</span>
+<span class="nc" id="L187">                        h.getAction(),</span>
+<span class="nc" id="L188">                        h.getPreviousValues(),</span>
+<span class="nc" id="L189">                        h.getNewValues(),</span>
+<span class="nc" id="L190">                        h.getChangedAt()</span>
+                ))
+<span class="nc" id="L192">                .toList();</span>
+    }
+
+    @Transactional(readOnly = true)
+    public List&lt;WorkItemDtos.DashboardStatusResponse&gt; dashboard(Long workspaceId, Long actorAccountId) {
+<span class="fc" id="L197">        permissionService.requireRole(workspaceId, actorAccountId, MemberRole.ADMIN, MemberRole.MEMBER, MemberRole.OBSERVER);</span>
+
+<span class="fc" id="L199">        return List.of(WorkItemStatus.values()).stream()</span>
+<span class="fc" id="L200">                .map(status -&gt; new WorkItemDtos.DashboardStatusResponse(</span>
+                        status,
+<span class="fc" id="L202">                        workItemRepository.countByWorkspaceIdAndStatus(workspaceId, status)</span>
+                ))
+<span class="fc" id="L204">                .toList();</span>
+    }
+
+        private WorkItemDtos.WorkItemResponse toResponse(WorkItem item) {
+<span class="fc" id="L208">        return new WorkItemDtos.WorkItemResponse(</span>
+<span class="fc" id="L209">                item.getId(),</span>
+<span class="fc" id="L210">                item.getWorkspaceId(),</span>
+<span class="fc" id="L211">                item.getTitle(),</span>
+<span class="fc" id="L212">                item.getDescription(),</span>
+<span class="fc" id="L213">                item.getDueDate(),</span>
+<span class="fc" id="L214">                item.getPriority(),</span>
+<span class="fc" id="L215">                item.getStatus(),</span>
+<span class="fc" id="L216">                item.getCreatorAccountId(),</span>
+<span class="fc" id="L217">                item.getAssignedAccountId(),</span>
+<span class="fc" id="L218">                item.getCompletedAt(),</span>
+<span class="fc" id="L219">                item.getCreatedAt(),</span>
+<span class="fc" id="L220">                item.getUpdatedAt()</span>
+        );
+    }
+
+    private String toHistorySnapshot(WorkItem item) {
+<span class="fc" id="L225">        return &quot;{\&quot;title\&quot;:\&quot;&quot; + item.getTitle() +</span>
+<span class="fc" id="L226">            &quot;\&quot;,\&quot;status\&quot;:\&quot;&quot; + item.getStatus() +</span>
+<span class="fc" id="L227">                &quot;\&quot;,\&quot;assigned_account_id\&quot;:&quot; + item.getAssignedAccountId() +</span>
+<span class="fc" id="L228">            &quot;,\&quot;priority\&quot;:\&quot;&quot; + item.getPriority() +</span>
+<span class="fc" id="L229">            &quot;\&quot;,\&quot;due_date\&quot;:\&quot;&quot; + item.getDueDate() +</span>
+<span class="fc" id="L230">            &quot;\&quot;,\&quot;completed_at\&quot;:\&quot;&quot; + item.getCompletedAt() + &quot;\&quot;}&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

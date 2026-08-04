@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApiExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">fr.edc3.pmt.config</a> &gt; <span class="el_source">ApiExceptionHandler.java</span></div><h1>ApiExceptionHandler.java</h1><pre class="source lang-java linenums">package fr.edc3.pmt.config;
+
+import fr.edc3.pmt.domain.service.ApiException;
+import fr.edc3.pmt.domain.service.NotFoundException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@RestControllerAdvice
+<span class="nc" id="L17">public class ApiExceptionHandler {</span>
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; handleNotFound(NotFoundException ex) {
+<span class="nc" id="L21">        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(payload(ex.getMessage(), HttpStatus.NOT_FOUND.value()));</span>
+    }
+
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; handleApi(ApiException ex) {
+<span class="nc" id="L26">        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(payload(ex.getMessage(), HttpStatus.BAD_REQUEST.value()));</span>
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; handleValidation(MethodArgumentNotValidException ex) {
+<span class="nc" id="L31">        Map&lt;String, String&gt; fields = ex.getBindingResult().getAllErrors()</span>
+<span class="nc" id="L32">                .stream()</span>
+<span class="nc" id="L33">                .collect(Collectors.toMap(</span>
+<span class="nc" id="L34">                        err -&gt; ((FieldError) err).getField(),</span>
+<span class="nc bnc" id="L35" title="All 2 branches missed.">                        err -&gt; err.getDefaultMessage() == null ? &quot;Invalid value&quot; : err.getDefaultMessage(),</span>
+<span class="nc" id="L36">                        (a, b) -&gt; a</span>
+                ));
+
+<span class="nc" id="L39">        Map&lt;String, Object&gt; body = payload(&quot;Validation failed&quot;, HttpStatus.UNPROCESSABLE_ENTITY.value());</span>
+<span class="nc" id="L40">        body.put(&quot;fields&quot;, fields);</span>
+<span class="nc" id="L41">        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(body);</span>
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; handleUnknown(Exception ex) {
+<span class="nc" id="L46">        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L47">                .body(payload(&quot;Unexpected server error&quot;, HttpStatus.INTERNAL_SERVER_ERROR.value()));</span>
+    }
+
+    private Map&lt;String, Object&gt; payload(String message, int status) {
+<span class="nc" id="L51">        return Map.of(</span>
+<span class="nc" id="L52">                &quot;timestamp&quot;, LocalDateTime.now().toString(),</span>
+<span class="nc" id="L53">                &quot;status&quot;, status,</span>
+                &quot;message&quot;, message
+        );
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

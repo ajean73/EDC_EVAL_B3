@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WorkspaceController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">fr.edc3.pmt.api</a> &gt; <span class="el_source">WorkspaceController.java</span></div><h1>WorkspaceController.java</h1><pre class="source lang-java linenums">package fr.edc3.pmt.api;
+
+import fr.edc3.pmt.api.dto.WorkspaceDtos;
+import fr.edc3.pmt.domain.service.WorkspaceService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping(&quot;/api/workspaces&quot;)
+@RequiredArgsConstructor
+public class WorkspaceController {
+
+    private final WorkspaceService workspaceService;
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public WorkspaceDtos.WorkspaceResponse create(@Valid @RequestBody WorkspaceDtos.CreateWorkspaceRequest request) {
+<span class="fc" id="L22">        return workspaceService.createWorkspace(request);</span>
+    }
+
+    @GetMapping
+    public List&lt;WorkspaceDtos.WorkspaceResponse&gt; findAll(@RequestParam Long actorAccountId) {
+<span class="fc" id="L27">        return workspaceService.findAll(actorAccountId);</span>
+    }
+
+    @GetMapping(&quot;/{workspaceId}&quot;)
+    public WorkspaceDtos.WorkspaceResponse findById(@PathVariable Long workspaceId) {
+<span class="fc" id="L32">        return workspaceService.findById(workspaceId);</span>
+    }
+
+    @GetMapping(&quot;/{workspaceId}/members&quot;)
+    public List&lt;WorkspaceDtos.TeamMemberResponse&gt; members(@PathVariable Long workspaceId) {
+<span class="fc" id="L37">        return workspaceService.findMembers(workspaceId);</span>
+    }
+
+    @PostMapping(&quot;/{workspaceId}/members&quot;)
+    @ResponseStatus(HttpStatus.CREATED)
+    public WorkspaceDtos.TeamMemberResponse addMember(
+            @PathVariable Long workspaceId,
+            @Valid @RequestBody WorkspaceDtos.AddMemberRequest request
+    ) {
+<span class="fc" id="L46">        return workspaceService.addMember(workspaceId, request);</span>
+    }
+
+    @PatchMapping(&quot;/{workspaceId}/members/{accountId}/role&quot;)
+    public WorkspaceDtos.TeamMemberResponse updateRole(
+            @PathVariable Long workspaceId,
+            @PathVariable Long accountId,
+            @Valid @RequestBody WorkspaceDtos.UpdateRoleRequest request
+    ) {
+<span class="fc" id="L55">        return workspaceService.updateRole(workspaceId, accountId, request);</span>
+    }
+
+    @PostMapping(&quot;/{workspaceId}/invitations&quot;)
+    @ResponseStatus(HttpStatus.CREATED)
+    public WorkspaceDtos.InvitationResponse invite(
+            @PathVariable Long workspaceId,
+            @Valid @RequestBody WorkspaceDtos.InvitationRequest request
+    ) {
+<span class="fc" id="L64">        return workspaceService.invite(workspaceId, request);</span>
+    }
+
+    @GetMapping(&quot;/invitations/mine&quot;)
+    public List&lt;WorkspaceDtos.InvitationResponse&gt; myInvitations(@RequestParam Long actorAccountId) {
+<span class="fc" id="L69">        return workspaceService.findMyPendingInvitations(actorAccountId);</span>
+    }
+
+    @PostMapping(&quot;/invitations/{invitationId}/accept&quot;)
+    public WorkspaceDtos.InvitationResponse acceptInvitation(
+            @PathVariable Long invitationId,
+            @Valid @RequestBody WorkspaceDtos.InvitationActionRequest request
+    ) {
+<span class="fc" id="L77">        return workspaceService.acceptInvitation(invitationId, request.actorAccountId());</span>
+    }
+
+    @PostMapping(&quot;/invitations/{invitationId}/decline&quot;)
+    public WorkspaceDtos.InvitationResponse declineInvitation(
+            @PathVariable Long invitationId,
+            @Valid @RequestBody WorkspaceDtos.InvitationActionRequest request
+    ) {
+<span class="fc" id="L85">        return workspaceService.declineInvitation(invitationId, request.actorAccountId());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

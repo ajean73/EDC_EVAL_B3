@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-pmt_db}
       POSTGRES_USER: ${POSTGRES_USER:-pmt_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./bdd/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
@@ -21,13 +21,13 @@ services:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-default}
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-pmt_db}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-pmt_user}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       APP_MAIL_ENABLED: ${APP_MAIL_ENABLED:-false}
       APP_MAIL_FROM: ${APP_MAIL_FROM:-no-reply@pmt.local}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USERNAME: ${SMTP_USERNAME:-}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_USERNAME: ${SMTP_USERNAME:?SMTP_USERNAME is required}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:?SMTP_PASSWORD is required}
       SERVER_PORT: 8080
     depends_on:
       - db

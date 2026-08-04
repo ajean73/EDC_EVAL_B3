@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WorkspaceService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">fr.edc3.pmt.domain.service</a> &gt; <span class="el_source">WorkspaceService.java</span></div><h1>WorkspaceService.java</h1><pre class="source lang-java linenums">package fr.edc3.pmt.domain.service;
+
+import fr.edc3.pmt.api.dto.WorkspaceDtos;
+import fr.edc3.pmt.domain.enums.MemberRole;
+import fr.edc3.pmt.domain.model.ProjectInvitation;
+import fr.edc3.pmt.domain.model.TeamMember;
+import fr.edc3.pmt.domain.model.Workspace;
+import fr.edc3.pmt.domain.repository.AccountRepository;
+import fr.edc3.pmt.domain.repository.ProjectInvitationRepository;
+import fr.edc3.pmt.domain.repository.TeamMemberRepository;
+import fr.edc3.pmt.domain.repository.WorkspaceRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class WorkspaceService {
+
+    private final WorkspaceRepository workspaceRepository;
+    private final TeamMemberRepository teamMemberRepository;
+    private final ProjectInvitationRepository invitationRepository;
+    private final AccountRepository accountRepository;
+    private final PermissionService permissionService;
+
+    @Transactional
+    public WorkspaceDtos.WorkspaceResponse createWorkspace(WorkspaceDtos.CreateWorkspaceRequest request) {
+<span class="fc" id="L33">        accountRepository.findById(request.ownerAccountId())</span>
+<span class="pc" id="L34">                .orElseThrow(() -&gt; new NotFoundException(&quot;Owner account not found&quot;));</span>
+
+<span class="fc" id="L36">        Workspace workspace = Workspace.builder()</span>
+<span class="fc" id="L37">                .name(request.name())</span>
+<span class="fc" id="L38">                .description(request.description())</span>
+<span class="fc" id="L39">                .startDate(request.startDate())</span>
+<span class="fc" id="L40">                .ownerAccountId(request.ownerAccountId())</span>
+<span class="fc" id="L41">                .build();</span>
+
+<span class="fc" id="L43">        Workspace saved = workspaceRepository.save(workspace);</span>
+
+<span class="fc" id="L45">        teamMemberRepository.save(TeamMember.builder()</span>
+<span class="fc" id="L46">                .workspaceId(saved.getId())</span>
+<span class="fc" id="L47">                .accountId(saved.getOwnerAccountId())</span>
+<span class="fc" id="L48">                .role(MemberRole.ADMIN)</span>
+<span class="fc" id="L49">                .build());</span>
+
+<span class="fc" id="L51">        return toResponse(saved);</span>
+    }
+
+    @Transactional(readOnly = true)
+        public List&lt;WorkspaceDtos.WorkspaceResponse&gt; findAll(Long actorAccountId) {
+<span class="fc" id="L56">                List&lt;Long&gt; workspaceIds = teamMemberRepository.findByAccountId(actorAccountId)</span>
+<span class="fc" id="L57">                                .stream()</span>
+<span class="fc" id="L58">                                .map(TeamMember::getWorkspaceId)</span>
+<span class="fc" id="L59">                                .distinct()</span>
+<span class="fc" id="L60">                                .toList();</span>
+
+<span class="pc bpc" id="L62" title="1 of 2 branches missed.">                if (workspaceIds.isEmpty()) {</span>
+<span class="fc" id="L63">                        return List.of();</span>
+                }
+
+<span class="nc" id="L66">                return workspaceRepository.findAllById(workspaceIds).stream().map(this::toResponse).toList();</span>
+    }
+
+    @Transactional(readOnly = true)
+    public WorkspaceDtos.WorkspaceResponse findById(Long workspaceId) {
+<span class="fc" id="L71">        Workspace workspace = workspaceRepository.findById(workspaceId)</span>
+<span class="pc" id="L72">                .orElseThrow(() -&gt; new NotFoundException(&quot;Workspace not found&quot;));</span>
+<span class="nc" id="L73">        return toResponse(workspace);</span>
+    }
+
+    @Transactional(readOnly = true)
+    public List&lt;WorkspaceDtos.TeamMemberResponse&gt; findMembers(Long workspaceId) {
+<span class="fc" id="L78">        workspaceRepository.findById(workspaceId)</span>
+<span class="pc" id="L79">                .orElseThrow(() -&gt; new NotFoundException(&quot;Workspace not found&quot;));</span>
+<span class="fc" id="L80">        List&lt;TeamMember&gt; members = teamMemberRepository.findByWorkspaceId(workspaceId);</span>
+<span class="fc" id="L81">        Map&lt;Long, String&gt; usernamesByAccountId = accountRepository.findAllById(</span>
+<span class="fc" id="L82">                        members.stream().map(TeamMember::getAccountId).distinct().toList())</span>
+<span class="fc" id="L83">                .stream()</span>
+<span class="fc" id="L84">                .collect(Collectors.toMap(a -&gt; a.getId(), a -&gt; a.getUsername()));</span>
+
+<span class="fc" id="L86">        return members</span>
+<span class="fc" id="L87">                .stream()</span>
+<span class="fc" id="L88">                .map(m -&gt; toTeamMemberResponse(m, usernamesByAccountId))</span>
+<span class="fc" id="L89">                .toList();</span>
+    }
+
+    @Transactional
+    public WorkspaceDtos.TeamMemberResponse addMember(Long workspaceId, WorkspaceDtos.AddMemberRequest request) {
+<span class="fc" id="L94">        workspaceRepository.findById(workspaceId)</span>
+<span class="pc" id="L95">                .orElseThrow(() -&gt; new NotFoundException(&quot;Workspace not found&quot;));</span>
+<span class="fc" id="L96">        accountRepository.findById(request.accountId())</span>
+<span class="pc" id="L97">                .orElseThrow(() -&gt; new NotFoundException(&quot;Account not found&quot;));</span>
+
+<span class="fc" id="L99">        permissionService.requireRole(workspaceId, request.actorAccountId(), MemberRole.ADMIN);</span>
+
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">        if (teamMemberRepository.existsByWorkspaceIdAndAccountId(workspaceId, request.accountId())) {</span>
+<span class="fc" id="L102">            throw new ApiException(&quot;Account already member of workspace&quot;);</span>
+        }
+
+<span class="nc" id="L105">        TeamMember saved = teamMemberRepository.save(TeamMember.builder()</span>
+<span class="nc" id="L106">                .workspaceId(workspaceId)</span>
+<span class="nc" id="L107">                .accountId(request.accountId())</span>
+<span class="nc" id="L108">                .role(request.role())</span>
+<span class="nc" id="L109">                .build());</span>
+
+<span class="nc" id="L111">        String username = accountRepository.findById(saved.getAccountId())</span>
+<span class="nc" id="L112">                .map(a -&gt; a.getUsername())</span>
+<span class="nc" id="L113">                .orElse(&quot;unknown&quot;);</span>
+
+<span class="nc" id="L115">        return new WorkspaceDtos.TeamMemberResponse(</span>
+<span class="nc" id="L116">                saved.getId(),</span>
+<span class="nc" id="L117">                saved.getWorkspaceId(),</span>
+<span class="nc" id="L118">                saved.getAccountId(),</span>
+                username,
+<span class="nc" id="L120">                saved.getRole(),</span>
+<span class="nc" id="L121">                saved.getJoinedAt()</span>
+        );
+    }
+
+    @Transactional
+    public WorkspaceDtos.TeamMemberResponse updateRole(Long workspaceId, Long accountId, WorkspaceDtos.UpdateRoleRequest request) {
+<span class="nc" id="L127">        permissionService.requireRole(workspaceId, request.actorAccountId(), MemberRole.ADMIN);</span>
+
+<span class="nc" id="L129">        TeamMember member = teamMemberRepository.findByWorkspaceIdAndAccountId(workspaceId, accountId)</span>
+<span class="nc" id="L130">                .orElseThrow(() -&gt; new NotFoundException(&quot;Member not found&quot;));</span>
+
+<span class="nc" id="L132">        member.setRole(request.role());</span>
+
+<span class="nc" id="L134">        String username = accountRepository.findById(member.getAccountId())</span>
+<span class="nc" id="L135">                .map(a -&gt; a.getUsername())</span>
+<span class="nc" id="L136">                .orElse(&quot;unknown&quot;);</span>
+
+<span class="nc" id="L138">        return new WorkspaceDtos.TeamMemberResponse(</span>
+<span class="nc" id="L139">                member.getId(),</span>
+<span class="nc" id="L140">                member.getWorkspaceId(),</span>
+<span class="nc" id="L141">                member.getAccountId(),</span>
+                username,
+<span class="nc" id="L143">                member.getRole(),</span>
+<span class="nc" id="L144">                member.getJoinedAt()</span>
+        );
+    }
+
+    @Transactional
+    public WorkspaceDtos.InvitationResponse invite(Long workspaceId, WorkspaceDtos.InvitationRequest request) {
+<span class="nc" id="L150">        workspaceRepository.findById(workspaceId)</span>
+<span class="nc" id="L151">                .orElseThrow(() -&gt; new NotFoundException(&quot;Workspace not found&quot;));</span>
+
+<span class="nc" id="L153">        permissionService.requireRole(workspaceId, request.actorAccountId(), MemberRole.ADMIN);</span>
+
+<span class="nc" id="L155">        ProjectInvitation invitation = ProjectInvitation.builder()</span>
+<span class="nc" id="L156">                .workspaceId(workspaceId)</span>
+<span class="nc" id="L157">                .inviteeEmail(request.inviteeEmail())</span>
+<span class="nc" id="L158">                .role(request.role())</span>
+<span class="nc" id="L159">                .invitedBy(request.actorAccountId())</span>
+<span class="nc" id="L160">                .build();</span>
+
+<span class="nc" id="L162">        ProjectInvitation saved = invitationRepository.save(invitation);</span>
+
+<span class="nc" id="L164">        return new WorkspaceDtos.InvitationResponse(</span>
+<span class="nc" id="L165">                saved.getId(),</span>
+<span class="nc" id="L166">                saved.getWorkspaceId(),</span>
+<span class="nc" id="L167">                saved.getInviteeEmail(),</span>
+<span class="nc" id="L168">                saved.getRole(),</span>
+<span class="nc" id="L169">                saved.getState(),</span>
+<span class="nc" id="L170">                saved.getInvitedBy(),</span>
+<span class="nc" id="L171">                getUsernameByAccountId(saved.getInvitedBy()),</span>
+<span class="nc" id="L172">                saved.getCreatedAt(),</span>
+<span class="nc" id="L173">                saved.getRespondedAt()</span>
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List&lt;WorkspaceDtos.InvitationResponse&gt; findMyPendingInvitations(Long actorAccountId) {
+<span class="fc" id="L179">        String email = accountRepository.findById(actorAccountId)</span>
+<span class="fc" id="L180">                .map(a -&gt; a.getEmail())</span>
+<span class="pc" id="L181">                .orElseThrow(() -&gt; new NotFoundException(&quot;Account not found&quot;));</span>
+
+<span class="fc" id="L183">        return invitationRepository.findByInviteeEmailIgnoreCaseAndStateOrderByCreatedAtDesc(email, fr.edc3.pmt.domain.enums.InvitationState.PENDING)</span>
+<span class="fc" id="L184">                .stream()</span>
+<span class="fc" id="L185">                .map(i -&gt; new WorkspaceDtos.InvitationResponse(</span>
+<span class="fc" id="L186">                        i.getId(),</span>
+<span class="fc" id="L187">                        i.getWorkspaceId(),</span>
+<span class="fc" id="L188">                        i.getInviteeEmail(),</span>
+<span class="fc" id="L189">                        i.getRole(),</span>
+<span class="fc" id="L190">                        i.getState(),</span>
+<span class="fc" id="L191">                        i.getInvitedBy(),</span>
+<span class="fc" id="L192">                        getUsernameByAccountId(i.getInvitedBy()),</span>
+<span class="fc" id="L193">                        i.getCreatedAt(),</span>
+<span class="fc" id="L194">                        i.getRespondedAt()</span>
+                ))
+<span class="fc" id="L196">                .toList();</span>
+    }
+
+    @Transactional
+    public WorkspaceDtos.InvitationResponse acceptInvitation(Long invitationId, Long actorAccountId) {
+<span class="fc" id="L201">        var invitation = invitationRepository.findById(invitationId)</span>
+<span class="pc" id="L202">                .orElseThrow(() -&gt; new NotFoundException(&quot;Invitation not found&quot;));</span>
+
+<span class="fc bfc" id="L204" title="All 2 branches covered.">        if (invitation.getState() != fr.edc3.pmt.domain.enums.InvitationState.PENDING) {</span>
+<span class="fc" id="L205">            throw new ApiException(&quot;Invitation already processed&quot;);</span>
+        }
+
+<span class="fc" id="L208">        String email = accountRepository.findById(actorAccountId)</span>
+<span class="fc" id="L209">                .map(a -&gt; a.getEmail())</span>
+<span class="pc" id="L210">                .orElseThrow(() -&gt; new NotFoundException(&quot;Account not found&quot;));</span>
+
+<span class="pc bpc" id="L212" title="1 of 2 branches missed.">        if (!invitation.getInviteeEmail().equalsIgnoreCase(email)) {</span>
+<span class="nc" id="L213">            throw new ApiException(&quot;Invitation does not belong to this account&quot;);</span>
+        }
+
+<span class="pc bpc" id="L216" title="1 of 2 branches missed.">        if (!teamMemberRepository.existsByWorkspaceIdAndAccountId(invitation.getWorkspaceId(), actorAccountId)) {</span>
+<span class="fc" id="L217">            teamMemberRepository.save(TeamMember.builder()</span>
+<span class="fc" id="L218">                    .workspaceId(invitation.getWorkspaceId())</span>
+<span class="fc" id="L219">                    .accountId(actorAccountId)</span>
+<span class="fc" id="L220">                    .role(invitation.getRole())</span>
+<span class="fc" id="L221">                    .build());</span>
+        }
+
+<span class="fc" id="L224">        invitation.setState(fr.edc3.pmt.domain.enums.InvitationState.ACCEPTED);</span>
+<span class="fc" id="L225">        invitation.setRespondedAt(LocalDateTime.now());</span>
+<span class="fc" id="L226">        ProjectInvitation saved = invitationRepository.save(invitation);</span>
+
+<span class="fc" id="L228">        return new WorkspaceDtos.InvitationResponse(</span>
+<span class="fc" id="L229">                saved.getId(),</span>
+<span class="fc" id="L230">                saved.getWorkspaceId(),</span>
+<span class="fc" id="L231">                saved.getInviteeEmail(),</span>
+<span class="fc" id="L232">                saved.getRole(),</span>
+<span class="fc" id="L233">                saved.getState(),</span>
+<span class="fc" id="L234">                saved.getInvitedBy(),</span>
+<span class="fc" id="L235">                getUsernameByAccountId(saved.getInvitedBy()),</span>
+<span class="fc" id="L236">                saved.getCreatedAt(),</span>
+<span class="fc" id="L237">                saved.getRespondedAt()</span>
+        );
+    }
+
+    @Transactional
+    public WorkspaceDtos.InvitationResponse declineInvitation(Long invitationId, Long actorAccountId) {
+<span class="fc" id="L243">        var invitation = invitationRepository.findById(invitationId)</span>
+<span class="pc" id="L244">                .orElseThrow(() -&gt; new NotFoundException(&quot;Invitation not found&quot;));</span>
+
+<span class="pc bpc" id="L246" title="1 of 2 branches missed.">        if (invitation.getState() != fr.edc3.pmt.domain.enums.InvitationState.PENDING) {</span>
+<span class="nc" id="L247">            throw new ApiException(&quot;Invitation already processed&quot;);</span>
+        }
+
+<span class="fc" id="L250">        String email = accountRepository.findById(actorAccountId)</span>
+<span class="fc" id="L251">                .map(a -&gt; a.getEmail())</span>
+<span class="pc" id="L252">                .orElseThrow(() -&gt; new NotFoundException(&quot;Account not found&quot;));</span>
+
+<span class="fc bfc" id="L254" title="All 2 branches covered.">        if (!invitation.getInviteeEmail().equalsIgnoreCase(email)) {</span>
+<span class="fc" id="L255">            throw new ApiException(&quot;Invitation does not belong to this account&quot;);</span>
+        }
+
+<span class="fc" id="L258">        invitation.setState(fr.edc3.pmt.domain.enums.InvitationState.DECLINED);</span>
+<span class="fc" id="L259">        invitation.setRespondedAt(LocalDateTime.now());</span>
+<span class="fc" id="L260">        ProjectInvitation saved = invitationRepository.save(invitation);</span>
+
+<span class="fc" id="L262">        return new WorkspaceDtos.InvitationResponse(</span>
+<span class="fc" id="L263">                saved.getId(),</span>
+<span class="fc" id="L264">                saved.getWorkspaceId(),</span>
+<span class="fc" id="L265">                saved.getInviteeEmail(),</span>
+<span class="fc" id="L266">                saved.getRole(),</span>
+<span class="fc" id="L267">                saved.getState(),</span>
+<span class="fc" id="L268">                saved.getInvitedBy(),</span>
+<span class="fc" id="L269">                getUsernameByAccountId(saved.getInvitedBy()),</span>
+<span class="fc" id="L270">                saved.getCreatedAt(),</span>
+<span class="fc" id="L271">                saved.getRespondedAt()</span>
+        );
+    }
+
+    private WorkspaceDtos.WorkspaceResponse toResponse(Workspace w) {
+<span class="fc" id="L276">        return new WorkspaceDtos.WorkspaceResponse(</span>
+<span class="fc" id="L277">                w.getId(),</span>
+<span class="fc" id="L278">                w.getName(),</span>
+<span class="fc" id="L279">                w.getDescription(),</span>
+<span class="fc" id="L280">                w.getStartDate(),</span>
+<span class="fc" id="L281">                w.getOwnerAccountId(),</span>
+<span class="fc" id="L282">                w.getCreatedAt()</span>
+        );
+    }
+
+        private String getUsernameByAccountId(Long accountId) {
+<span class="fc" id="L287">                return accountRepository.findById(accountId)</span>
+<span class="fc" id="L288">                                .map(a -&gt; a.getUsername())</span>
+<span class="fc" id="L289">                                .orElse(&quot;unknown&quot;);</span>
+        }
+
+        private WorkspaceDtos.TeamMemberResponse toTeamMemberResponse(TeamMember member, Map&lt;Long, String&gt; usernamesByAccountId) {
+<span class="fc" id="L293">                return new WorkspaceDtos.TeamMemberResponse(</span>
+<span class="fc" id="L294">                                member.getId(),</span>
+<span class="fc" id="L295">                                member.getWorkspaceId(),</span>
+<span class="fc" id="L296">                                member.getAccountId(),</span>
+<span class="fc" id="L297">                                usernamesByAccountId.getOrDefault(member.getAccountId(), &quot;unknown&quot;),</span>
+<span class="fc" id="L298">                                member.getRole(),</span>
+<span class="fc" id="L299">                                member.getJoinedAt()</span>
+                );
+        }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

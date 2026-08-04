@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TeamMember.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">fr.edc3.pmt.domain.model</a> &gt; <span class="el_source">TeamMember.java</span></div><h1>TeamMember.java</h1><pre class="source lang-java linenums">package fr.edc3.pmt.domain.model;
+
+import fr.edc3.pmt.domain.enums.MemberRole;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = &quot;team_members&quot;, uniqueConstraints = {
+        @UniqueConstraint(name = &quot;uq_workspace_member&quot;, columnNames = {&quot;workspace_id&quot;, &quot;account_id&quot;})
+})
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class TeamMember {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = &quot;workspace_id&quot;, nullable = false)
+    private Long workspaceId;
+
+    @Column(name = &quot;account_id&quot;, nullable = false)
+    private Long accountId;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(nullable = false, columnDefinition = &quot;member_role&quot;)
+    private MemberRole role;
+
+    @Column(name = &quot;joined_at&quot;, nullable = false)
+    private LocalDateTime joinedAt;
+
+    @PrePersist
+    void prePersist() {
+<span class="nc bnc" id="L41" title="All 2 branches missed.">        if (this.joinedAt == null) {</span>
+<span class="nc" id="L42">            this.joinedAt = LocalDateTime.now();</span>
+        }
+<span class="nc" id="L44">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
