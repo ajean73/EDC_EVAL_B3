@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class Account {
+    // Entité compte: identité applicative et credentials.
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -41,6 +43,7 @@ public class Account {
 
     @PreUpdate
     void preUpdate() {
+        // Mise à jour automatique de la date de modification.
         this.updatedAt = LocalDateTime.now();
     }
 }

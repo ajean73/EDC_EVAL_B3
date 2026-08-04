@@ -14,6 +14,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WorkspaceController {
 
+    // Les vérifications d'autorisations métier sont centralisées dans la couche service.
+
     private final WorkspaceService workspaceService;
 
     @PostMapping

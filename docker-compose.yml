@@ -3,6 +3,7 @@ services:
     image: postgres:16-alpine
     container_name: pmt-db
     environment:
+      # Variables obligatoires injectées par l'environnement (CI ou .env local).
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}

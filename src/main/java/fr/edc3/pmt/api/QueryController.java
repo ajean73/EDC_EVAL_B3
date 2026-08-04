@@ -17,6 +17,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class QueryController {
 
+    // Endpoints de consultation/agrégation pour les écrans dashboard et notifications.
+
     private final WorkItemService workItemService;
     private final NotificationService notificationService;
 

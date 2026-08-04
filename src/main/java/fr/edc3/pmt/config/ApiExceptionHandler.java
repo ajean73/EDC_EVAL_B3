@@ -16,6 +16,8 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
+    // Normalisation des erreurs API pour garantir un format stable côté client.
+
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(NotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(payload(ex.getMessage(), HttpStatus.NOT_FOUND.value()));
@@ -28,6 +30,7 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
+        // Aplatit les erreurs de validation par champ dans une map "fields" prévisible.
         Map<String, String> fields = ex.getBindingResult().getAllErrors()
                 .stream()
                 .collect(Collectors.toMap(
@@ -43,6 +46,7 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleUnknown(Exception ex) {
+        // N'expose pas les détails internes en cas d'erreur inattendue.
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(payload("Unexpected server error", HttpStatus.INTERNAL_SERVER_ERROR.value()));
     }

@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController {
 
+    // Ce contrôleur expose uniquement des opérations d'identité (inscription et connexion).
+
     private final AuthService authService;
 
     @PostMapping("/register")

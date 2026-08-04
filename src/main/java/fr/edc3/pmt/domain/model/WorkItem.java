@@ -18,6 +18,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class WorkItem {
+    // Entité tâche métier rattachée à un workspace.
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -61,6 +63,7 @@ public class WorkItem {
 
     @PrePersist
     void prePersist() {
+        // Valeurs par défaut métier à la création.
         LocalDateTime now = LocalDateTime.now();
         this.createdAt = now;
         this.updatedAt = now;

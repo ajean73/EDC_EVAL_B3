@@ -14,6 +14,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class Workspace {
+    // Entité projet collaboratif possédée par un compte (owner).
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

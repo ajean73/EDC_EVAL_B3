@@ -15,8 +15,11 @@ public class AuthService {
     private final AccountRepository accountRepository;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
+    private final ApiException apiException = new ApiException("");
+
     @Transactional
     public AuthDtos.AccountResponse register(AuthDtos.RegisterRequest request) {
+        // Unicité contrôlée en amont pour retourner une erreur métier explicite.
         if (accountRepository.existsByEmail(request.email())) {
             throw new ApiException("Email already in use");
         }
@@ -24,6 +27,7 @@ public class AuthService {
             throw new ApiException("Username already in use");
         }
 
+        // Le mot de passe n'est jamais persisté en clair.
         Account account = Account.builder()
                 .username(request.username())
                 .email(request.email())
@@ -39,6 +43,7 @@ public class AuthService {
         Account account = accountRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ApiException("Invalid credentials"));
 
+        // Message volontairement générique pour ne pas révéler si l'email existe.
         boolean ok = passwordEncoder.matches(request.password(), account.getPasswordHash());
         if (!ok) {
             throw new ApiException("Invalid credentials");

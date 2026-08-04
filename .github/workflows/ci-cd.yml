@@ -7,6 +7,7 @@ on:
     branches: [main, branches/**]
 
 jobs:
+  # Vérification de la qualité backend: tests + couverture.
   backend-tests:
     name: Tests du backend
     runs-on: ubuntu-latest
@@ -34,6 +35,7 @@ jobs:
             couvertures/backend/**
             target/surefire-reports/**
 
+  # Vérification de la qualité frontend: tests + couverture.
   frontend-tests:
     name: Tests du frontend
     runs-on: ubuntu-latest
@@ -64,6 +66,7 @@ jobs:
           name: frontend-coverage-report
           path: couvertures/frontend/**
 
+  # Build des images uniquement après validation des tests.
   build-images:
     name: Construction des images Docker
     runs-on: ubuntu-latest
@@ -92,8 +95,9 @@ jobs:
           push: false
           tags: local/pmt-frontend:${{ github.sha }}
 
-  deploy-images:
-    name: Déploiement des images Docker
+  # Publication des images Docker réservée aux pushs sur main.
+  publish-images:
+    name: Publication des images Docker
     runs-on: ubuntu-latest
     needs: [build-images]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -111,7 +115,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Construire et publier l'image backend
+      - name: Publier l'image backend
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -121,7 +125,7 @@ jobs:
             ${{ secrets.DOCKERHUB_BACKEND_IMAGE }}:latest
             ${{ secrets.DOCKERHUB_BACKEND_IMAGE }}:${{ github.sha }}
 
-      - name: Construire et publier l'image frontend
+      - name: Publier l'image frontend
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -131,10 +135,27 @@ jobs:
             ${{ secrets.DOCKERHUB_FRONTEND_IMAGE }}:latest
             ${{ secrets.DOCKERHUB_FRONTEND_IMAGE }}:${{ github.sha }}
 
-      - name: Démarrer la stack avec Docker Compose
+  # Déploiement applicatif + acceptance réservés aux pushs sur main.
+  deploy-app:
+    name: Déploiement application + tests d'acceptance
+    runs-on: ubuntu-latest
+    needs: [publish-images]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Configurer Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Partie 1/2 - Déploiement de l'application
+      - name: 1.1 Démarrer la stack applicative
         env:
+          # Configuration runtime non sensible (Repository Variables)
           POSTGRES_DB: ${{ vars.POSTGRES_DB }}
           POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+          # Configuration runtime sensible (GitHub Secrets)
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           SPRING_PROFILES_ACTIVE: prod
           APP_MAIL_ENABLED: ${{ vars.APP_MAIL_ENABLED }}
@@ -144,5 +165,31 @@ jobs:
           SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: |
+          # Validation rapide du deploiement sur runner GitHub.
           docker compose up -d --build
           docker compose ps
+
+      # Partie 2/2 - Tests d'acceptance
+      - name: 2.1 Vérifier l'accessibilité des services
+        run: |
+          set -euo pipefail
+
+          # Attendre que les services soient joignables avant d'echouer le deploiement.
+          for i in {1..30}; do
+            frontend_status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4200/ || true)
+            backend_status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/workspaces || true)
+
+            echo "Tentative ${i}/30 - frontend=${frontend_status} backend=${backend_status}"
+
+            if [ "${frontend_status}" = "200" ] && [ "${backend_status}" != "000" ]; then
+              echo "Acceptance OK: frontend et backend sont accessibles."
+              exit 0
+            fi
+
+            sleep 5
+          done
+
+          echo "Acceptance KO: au moins un service est inaccessible."
+          docker compose ps
+          docker compose logs --no-color --tail=200
+          exit 1

@@ -14,6 +14,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WorkItemController {
 
+    // Le contrôleur reste fin: validation HTTP ici, règles d'accès et métier dans le service.
+
     private final WorkItemService workItemService;
 
     @PostMapping

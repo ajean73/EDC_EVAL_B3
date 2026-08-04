@@ -23,6 +23,7 @@ import java.util.List;
 @Slf4j
 public class NotificationService {
 
+
     private final UserNotificationRepository userNotificationRepository;
     private final AccountRepository accountRepository;
     private final WorkItemRepository workItemRepository;
@@ -62,6 +63,7 @@ public class NotificationService {
                     log.warn("SMTP_SEND_FAILED to={} workItemId={} cause={}", targetEmail, workItemId, ex.getMessage());
                 }
             } else {
+                // Mode sans SMTP: trace applicative pour conserver un comportement testable.
                 log.info("EMAIL_NOTIFICATION_SIMULATED to={} subject='Task assigned' body='You have been assigned: {} (#{}).'",
                         targetEmail,
                         workItemTitle,
@@ -78,6 +80,7 @@ public class NotificationService {
                 .isSent(sent)
                 .sentAt(sentAt)
                 .build();
+        // La notification est toujours persistée, même en cas d'échec SMTP.
         userNotificationRepository.save(notification);
     }
 

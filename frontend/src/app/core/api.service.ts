@@ -20,6 +20,7 @@ export class ApiService {
 
   constructor(private readonly http: HttpClient) {}
 
+  // Authentification
   register(payload: { username: string; email: string; password: string }): Observable<AccountResponse> {
     return this.http.post<AccountResponse>(`${this.baseUrl}/auth/register`, payload);
   }
@@ -28,6 +29,7 @@ export class ApiService {
     return this.http.post<LoginResponse>(`${this.baseUrl}/auth/login`, payload);
   }
 
+  // Workspaces
   getWorkspaces(actorAccountId: number): Observable<Workspace[]> {
     return this.http.get<Workspace[]>(`${this.baseUrl}/workspaces`, {
       params: { actorAccountId }
@@ -80,6 +82,7 @@ export class ApiService {
     return this.http.patch<TeamMember>(`${this.baseUrl}/workspaces/${workspaceId}/members/${accountId}/role`, payload);
   }
 
+  // Work items
   getWorkItems(workspaceId: number, actorAccountId: number): Observable<WorkItem[]> {
     return this.http.get<WorkItem[]>(`${this.baseUrl}/workspaces/${workspaceId}/work-items`, {
       params: { actorAccountId }
@@ -117,6 +120,7 @@ export class ApiService {
     return this.http.patch<WorkItem>(`${this.baseUrl}/workspaces/${workspaceId}/work-items/${workItemId}`, payload);
   }
 
+  // Requêtes de consultation
   getDashboard(workspaceId: number, actorAccountId: number): Observable<DashboardStatus[]> {
     return this.http.get<DashboardStatus[]>(`${this.baseUrl}/workspaces/${workspaceId}/dashboard`, {
       params: { actorAccountId }
