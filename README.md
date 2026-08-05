@@ -63,30 +63,36 @@ Détail des relations du diagramme :
 
 2. frontend-tests
 - Lance les tests frontend (Angular/Jest).
-- Objectif : éviter de publier une interface cassée.
+- Objectif : éviter de publier une interface non fonctionnelle.
 
 3. build-images
 - Construit les images Docker backend et frontend.
 - Objectif : garantir que l'application est réellement packagée.
 
-4. publish-images
-- Publie les images sur le registry (Docker Hub) avec les credentials GitHub Secrets.
-- Objectif : disposer d'artefacts versionnés, traçables et réutilisables.
+4. test-artifacts
+- Teste les artefacts Docker en exécution avant publication : reconstruction des images avec le tag du commit, démarrage de la stack via Docker Compose sans build, vérifications d'accessibilité frontend/backend (smoke tests), puis nettoyage de la stack.
+- Objectif : valider les artefacts en conditions d'exécution avant push Docker Hub.
 
-5. deploy-app
-- Exécute docker compose pour démarrer les services (db, backend, frontend) avec le profil prod.
+5. publish-images
+- Publie les images sur le registry (Docker Hub) avec les credentials GitHub Secrets.
+- Applique les tags `latest` et SHA du commit.
+- Ne s'exécute que si `build-images` et `test-artifacts` sont validés.
+- Objectif : déployer les artefacts sur le registry.
+
+6. deploy-app
+- Pull explicitement les images publiées (tag SHA), puis démarre la stack sans rebuild local.
 - Exécute des tests d'acceptance simples (smoke tests HTTP).
-- Objectif : vérifier que l'application démarre et répond correctement en production.
+- Objectif : vérifier que les artefacts publiés sont réellement déployables et fonctionnels.
 
 ### Justification de l'ordre et déclenchement
 
-L'ordre du pipeline suit une logique de fiabilité. On commence par exécuter les tests afin d'éviter toute publication de code instable. Une fois cette validation effectuée, on construit les images Docker, car ce sont elles qui constituent l'unité réelle de déploiement. La publication des images n'intervient qu'après une construction réussie, ce qui garantit des artefacts cohérents. Le déploiement est placé en dernière étape pour réduire le risque d'incident en production.
+L'ordre du pipeline suit une logique de fiabilité : tests du code, construction des artefacts, test runtime des artefacts, publication sur Docker Hub, puis déploiement basé sur les images publiées. Cette séquence limite le risque de publier un artefact non exploitable.
 
-Concernant les déclencheurs, les tests sont lancés à chaque pull request vers main ainsi qu'à chaque push (sur main et sur branches/**). Cependant, le déploiement, ne s'exécute pas sur les pull requests : il est déclenché uniquement lors d'un push sur main. En pratique, cela inclut le push généré après la fusion d'une pull request dans main, et également un push direct sur main.
+Concernant les déclencheurs, les tests backend et frontend sont lancés à chaque pull request vers `main` ainsi qu'à chaque push (sur `main` et sur `branches/**`). La publication des images et le déploiement ne s'exécutent pas sur les pull requests : ils sont déclenchés uniquement lors d'un push sur `main`.
 
 ### Critères de succès du déploiement
 
-Le déploiement est considéré comme réussi lorsque l'ensemble des jobs de tests se termine sans échec, lorsque les images Docker sont correctement construites puis publiées, et lorsque les conteneurs démarrent sans erreur bloquante. La validation finale repose sur les checks d'acceptance, qui doivent retourner les statuts attendus pour confirmer l'accessibilité fonctionnelle des services.
+Le déploiement est considéré comme réussi lorsque les tests backend et frontend passent, lorsque les artefacts Docker passent les tests runtime pré-publication, lorsque les images sont publiées sur Docker Hub, lorsque la stack démarre avec les images publiées et lorsque les checks d'acceptance retournent les statuts attendus.
 
 
 ## 6) API PMT
