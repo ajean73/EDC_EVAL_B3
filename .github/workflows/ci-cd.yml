@@ -95,11 +95,99 @@ jobs:
           push: false
           tags: local/pmt-frontend:${{ github.sha }}
 
+  # Vérification des artefacts Docker en exécution avant publication.
+  test-artifacts:
+    name: Tests des artefacts Docker
+    runs-on: ubuntu-latest
+    needs: [build-images]
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Configurer Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Re-construire les images pour test runtime (chargées localement)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./backend.Dockerfile
+          push: false
+          load: true
+          tags: local/pmt-backend:${{ github.sha }}
+
+      - name: Re-construire l'image frontend pour test runtime (chargée localement)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./frontend.Dockerfile
+          push: false
+          load: true
+          tags: local/pmt-frontend:${{ github.sha }}
+
+      - name: Préparer l'override compose des artefacts locaux
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cat > docker-compose.prepublish.yml <<EOF
+          services:
+            backend:
+              image: local/pmt-backend:${IMAGE_TAG}
+              build: null
+            frontend:
+              image: local/pmt-frontend:${IMAGE_TAG}
+              build: null
+          EOF
+
+      - name: Démarrer la stack depuis les artefacts locaux
+        env:
+          POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+          POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          SPRING_PROFILES_ACTIVE: prod
+          APP_MAIL_ENABLED: ${{ vars.APP_MAIL_ENABLED }}
+          APP_MAIL_FROM: ${{ vars.APP_MAIL_FROM }}
+          SMTP_HOST: ${{ vars.SMTP_HOST }}
+          SMTP_PORT: ${{ vars.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.prepublish.yml up -d --no-build
+          docker compose -f docker-compose.yml -f docker-compose.prepublish.yml ps
+
+      - name: Vérifier l'accessibilité des artefacts
+        run: |
+          set -euo pipefail
+
+          for i in {1..30}; do
+            frontend_status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4200/ || true)
+            backend_status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/workspaces || true)
+
+            echo "Tentative ${i}/30 - frontend=${frontend_status} backend=${backend_status}"
+
+            if [ "${frontend_status}" = "200" ] && [ "${backend_status}" != "000" ]; then
+              echo "Artefacts OK: frontend et backend sont accessibles."
+              exit 0
+            fi
+
+            sleep 5
+          done
+
+          echo "Artefacts KO: au moins un service est inaccessible."
+          docker compose -f docker-compose.yml -f docker-compose.prepublish.yml ps
+          docker compose -f docker-compose.yml -f docker-compose.prepublish.yml logs --no-color --tail=200
+          exit 1
+
+      - name: Nettoyer la stack de test artefacts
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.prepublish.yml down -v
+
   # Publication des images Docker réservée aux pushs sur main.
   publish-images:
     name: Publication des images Docker
     runs-on: ubuntu-latest
-    needs: [build-images]
+    needs: [build-images, test-artifacts]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
@@ -149,6 +237,37 @@ jobs:
       - name: Configurer Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Connexion à Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Préparer l'override compose des images publiées
+        env:
+          BACKEND_IMAGE: ${{ secrets.DOCKERHUB_BACKEND_IMAGE }}
+          FRONTEND_IMAGE: ${{ secrets.DOCKERHUB_FRONTEND_IMAGE }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cat > docker-compose.ci-images.yml <<EOF
+          services:
+            backend:
+              image: ${BACKEND_IMAGE}:${IMAGE_TAG}
+              build: null
+            frontend:
+              image: ${FRONTEND_IMAGE}:${IMAGE_TAG}
+              build: null
+          EOF
+
+      - name: Récupérer les images publiées
+        env:
+          BACKEND_IMAGE: ${{ secrets.DOCKERHUB_BACKEND_IMAGE }}
+          FRONTEND_IMAGE: ${{ secrets.DOCKERHUB_FRONTEND_IMAGE }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker pull "${BACKEND_IMAGE}:${IMAGE_TAG}"
+          docker pull "${FRONTEND_IMAGE}:${IMAGE_TAG}"
+
       # Partie 1/2 - Déploiement de l'application
       - name: 1.1 Démarrer la stack applicative
         env:
@@ -165,9 +284,9 @@ jobs:
           SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: |
-          # Validation rapide du deploiement sur runner GitHub.
-          docker compose up -d --build
-          docker compose ps
+          # Validation rapide du déploiement sur runner GitHub à partir des artefacts publiés.
+          docker compose -f docker-compose.yml -f docker-compose.ci-images.yml up -d --no-build
+          docker compose -f docker-compose.yml -f docker-compose.ci-images.yml ps
 
       # Partie 2/2 - Tests d'acceptance
       - name: 2.1 Vérifier l'accessibilité des services
@@ -190,6 +309,7 @@ jobs:
           done
 
           echo "Acceptance KO: au moins un service est inaccessible."
-          docker compose ps
-          docker compose logs --no-color --tail=200
+          docker compose -f docker-compose.yml -f docker-compose.ci-images.yml ps
+          docker compose -f docker-compose.yml -f docker-compose.ci-images.yml logs --no-color --tail=200
           exit 1
+
