@@ -128,3 +128,13 @@ curl -X POST http://localhost:8080/api/workspaces/10/work-items \
 ```bash
 curl "http://localhost:8080/api/workspaces/10/dashboard?actorAccountId=1"
 ```
+
+## 7) Captures d'écran
+
+![Interface_1](images/screen_interface_1.PNG)
+
+![Interface_2](images/screen_interface_2.PNG)
+
+![Interface_3](images/screen_interface_3.PNG)
+
+
