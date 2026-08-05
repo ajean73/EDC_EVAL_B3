@@ -16,7 +16,6 @@ public class PermissionService {
         var member = teamMemberRepository.findByWorkspaceIdAndAccountId(workspaceId, accountId)
                 .orElseThrow(() -> new ApiException("Account is not a member of workspace"));
 
-        // érification simple de whitelist des rôles autorisés pour l'action.
         for (MemberRole role : allowedRoles) {
             if (member.getRole() == role) {
                 return;
