@@ -57,8 +57,8 @@ export class AuthComponent implements OnDestroy {
         this.loading = false;
         void this.router.navigate(['/app']);
       },
-      error: () => {
-        this.showError('Identifiants invalides.');
+      error: (err) => {
+        this.showError(this.extractErrorMessage(err, 'Identifiants invalides.'));
         this.loading = false;
       }
     });
@@ -78,8 +78,8 @@ export class AuthComponent implements OnDestroy {
         this.loginForm.password = '';
         this.registerForm = { username: '', email: '', password: '' };
       },
-      error: () => {
-        this.showError('Création de compte impossible.');
+      error: (err) => {
+        this.showError(this.extractErrorMessage(err, 'Création de compte impossible.'));
         this.loading = false;
       }
     });
@@ -136,5 +136,14 @@ export class AuthComponent implements OnDestroy {
       clearTimeout(this.messageTimer);
       this.messageTimer = null;
     }
+  }
+
+  private extractErrorMessage(err: unknown, fallback: string): string {
+    const maybe = err as { error?: { message?: string } };
+    const message = maybe?.error?.message;
+    if (typeof message === 'string' && message.trim().length > 0) {
+      return message;
+    }
+    return fallback;
   }
 }
