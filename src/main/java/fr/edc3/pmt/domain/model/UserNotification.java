@@ -44,7 +44,6 @@ public class UserNotification {
 
     @PrePersist
     void prePersist() {
-        // Par défaut, une notification est considérée non envoyée.
         if (this.isSent == null) {
             this.isSent = false;
         }
