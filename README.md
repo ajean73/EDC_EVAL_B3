@@ -92,7 +92,12 @@ Concernant les déclencheurs, les tests backend et frontend sont lancés à chaq
 
 ### Critères de succès du déploiement
 
-Le déploiement est considéré comme réussi lorsque les tests backend et frontend passent, lorsque les artefacts Docker passent les tests runtime pré-publication, lorsque les images sont publiées sur Docker Hub, lorsque la stack démarre avec les images publiées et lorsque les checks d'acceptance retournent les statuts attendus.
+Le déploiement est considéré comme réussi lorsque toutes ces étapes se terminent avec succès:
+- Tests backend et frontend
+- Tests runtime pré-publication sur les artefacts
+- Publication des images sur Docker Hub
+- Démarrage de la stack avec les images publiées
+- Checks d'acceptance avec les statuts attendus.
 
 
 ## 6) API PMT
