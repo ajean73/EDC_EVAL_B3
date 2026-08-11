@@ -223,9 +223,9 @@ jobs:
             ${{ secrets.DOCKERHUB_FRONTEND_IMAGE }}:latest
             ${{ secrets.DOCKERHUB_FRONTEND_IMAGE }}:${{ github.sha }}
 
-  # Déploiement applicatif + acceptance réservés aux pushs sur main.
+  # Déploiement applicatif
   deploy-app:
-    name: Déploiement application + tests d'acceptance
+    name: Déploiement application
     runs-on: ubuntu-latest
     needs: [publish-images]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
