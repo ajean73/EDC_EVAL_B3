@@ -81,7 +81,6 @@ Détail des relations du diagramme :
 
 6. deploy-app
 - Pull explicitement les images publiées (tag SHA), puis démarre la stack sans rebuild local.
-- Exécute des tests d'acceptance simples (smoke tests HTTP).
 - Objectif : vérifier que les artefacts publiés sont réellement déployables et fonctionnels.
 
 ### Justification de l'ordre et déclenchement
@@ -97,8 +96,6 @@ Le déploiement est considéré comme réussi lorsque toutes ces étapes se term
 - Tests runtime pré-publication sur les artefacts
 - Publication des images sur Docker Hub
 - Démarrage de la stack avec les images publiées
-- Checks d'acceptance avec les statuts attendus.
-
 
 ## 6) API PMT
 
